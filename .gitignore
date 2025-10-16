@@ -1,3 +1,6 @@
 /ffmpeg-src/
 /Dockerfile*
 build
+
+# Build results
+artifacts/

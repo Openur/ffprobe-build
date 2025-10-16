@@ -1,0 +1,339 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_freebsd_arm:
+        description: Build FreeBSD ARM
+        type: boolean
+        default: false
+        required: true
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build.yml
+      - platforms/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build.yml
+      - platforms/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true
+
+env:
+  FFMPEG_VERSION: "8.0"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.variables.outputs.version }}
+    steps:
+      - name: Setup variables
+        id: variables
+        shell: bash
+        run: |
+          version="$FFMPEG_VERSION"
+
+          if [[ $version =~ ^[0-9]+\.[0-9]+$ ]]; then
+            version="${version}.0"
+          fi
+
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+  build_linux:
+    runs-on: ${{ startsWith(matrix.architecture, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - arm
+          - arm64
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        uses: docker://ghcr.io/openur/ffmpeg-builder:linux
+        with:
+          args: "platforms/linux/build.sh ${{ matrix.architecture }}"
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin/*
+
+      - name: Display build information
+        run: |
+          platforms/linux/build/opt/ffmpeg/bin/ffprobe -hide_banner -version
+          platforms/linux/build/opt/ffmpeg/bin/ffprobe -hide_banner -buildconf
+          platforms/linux/build/opt/ffmpeg/bin/ffprobe -hide_banner -bsfs
+
+      - name: Prepare build artifact
+        run: mkdir -p build/linux-${{ matrix.architecture }} && cp platforms/linux/build/opt/ffmpeg/bin/ffprobe build/linux-${{ matrix.architecture }}/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-linux-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  build_windows:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - x64
+          - x86
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        uses: docker://ghcr.io/openur/ffmpeg-builder:windows
+        with:
+          args: "platforms/windows/build.sh ${{ matrix.architecture }}"
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin/*
+
+      - name: Prepare build artifact
+        run: mkdir -p build/win-${{ matrix.architecture }} && cp platforms/windows/build/opt/ffmpeg/bin/ffprobe.exe build/win-${{ matrix.architecture }}/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-win-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  build_freebsd:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - arm64
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        uses: vmactions/freebsd-vm@487ce35b96fae3e60d45b521735f5aa436ecfade # v1.2.4
+        if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
+        with:
+          release: 14.3
+          usesh: true
+          arch: ${{ matrix.architecture == 'arm64' && 'aarch64' || 'x86_64' }}
+          prepare: |
+            pkg install -y bash gmake pkgconf nasm meson
+          run: |
+            ./platforms/freebsd/build.sh ${{ matrix.architecture }}
+
+            ./platforms/freebsd/build/opt/ffmpeg/bin/ffprobe -hide_banner -version
+            ./platforms/freebsd/build/opt/ffmpeg/bin/ffprobe -hide_banner -buildconf
+            ./platforms/freebsd/build/opt/ffmpeg/bin/ffprobe -hide_banner -bsfs
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin/*
+        if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
+
+      - name: Prepare build artifact
+        run: mkdir -p build/freebsd-${{ matrix.architecture }} && cp platforms/freebsd/build/opt/ffmpeg/bin/ffprobe build/freebsd-${{ matrix.architecture }}/
+        if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
+        with:
+          name: build-freebsd-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  build_mac:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - arm64
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        shell: bash
+        run: ./platforms/osx/build.sh ${{ matrix.architecture }}
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin/*
+
+      - name: Display build information
+        run: |
+          otool -l platforms/osx/build/opt/ffmpeg/bin/ffprobe
+          platforms/osx/build/opt/ffmpeg/bin/ffprobe -hide_banner -version
+          platforms/osx/build/opt/ffmpeg/bin/ffprobe -hide_banner -buildconf
+          platforms/osx/build/opt/ffmpeg/bin/ffprobe -hide_banner -bsfs
+
+      - name: Prepare build artifact
+        run: mkdir -p build/osx-${{ matrix.architecture }} && cp platforms/osx/build/opt/ffmpeg/bin/ffprobe build/osx-${{ matrix.architecture }}/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-osx-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  package:
+    needs:
+      - prepare
+      - build_freebsd
+      - build_linux
+      - build_mac
+      - build_windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        env:
+          DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+          DOTNET_CLI_TELEMETRY_OPTOUT: 1
+          DOTNET_NOLOGO: 1
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          pattern: build-*
+          path: build
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lR build
+
+      - name: Package
+        shell: bash
+        run: dotnet pack -c Release -v detailed -p:Version=${{ needs.prepare.outputs.semver }}.${{ github.run_number }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: packages
+          path: artifacts/package/release/Openur.FFprobe.*.nupkg
+          if-no-files-found: error
+
+  release:
+    needs:
+      - prepare
+      - package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && inputs.build_freebsd_arm
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: packages
+          path: packages
+
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          pattern: build-*
+          path: build
+          merge-multiple: true
+
+      - name: Archive artifacts
+        run: |
+          mkdir artifacts
+          for runtime in build/*/; do
+            runtime="${runtime%/}"
+            name="${runtime##*/}"
+            if [[ $name == win* ]]; then
+              tar -cJf "./artifacts/ffprobe.$name.tar.xz" -C "$runtime" "ffprobe.exe"
+            elif [[ $name == linux* ]] || [[ $name == osx* ]] || [[ $name == freebsd* ]]; then
+              tar -cJf "./artifacts/ffprobe.$name.tar.xz" -C "$runtime" "ffprobe"
+            fi
+          done
+
+      - name: Create release
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
+        with:
+          artifacts: packages/Openur.FFprobe.*.nupkg,artifacts/ffprobe.*
+          artifactErrorsFailBuild: true
+          draft: false
+          generateReleaseNotes: false
+          skipIfReleaseExists: true
+          immutableCreate: true
+          name: ${{ env.FFMPEG_VERSION }} (build ${{ github.run_number }})
+          tag: v${{ needs.prepare.outputs.semver }}.${{ github.run_number }}
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: packages
+          path: packages
+
+      - name: Push to GitHub
+        shell: bash
+        run: >-
+          dotnet nuget push
+          packages/Openur.FFprobe.*.nupkg
+          --no-symbols
+          --skip-duplicate
+          --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+          --api-key ${{ secrets.GITHUB_TOKEN }}
