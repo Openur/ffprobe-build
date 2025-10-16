@@ -23,6 +23,7 @@ export FFMPEG_CONFIGURE_ARGS=(
 
   --enable-ffprobe
   --enable-protocol=file
+  --enable-protocol=bluray
   --enable-demuxers
   --enable-parsers
   --enable-decoders
@@ -35,6 +36,8 @@ export FFMPEG_CONFIGURE_ARGS=(
 
   # AV1
   --enable-libdav1d
+
+  --enable-libbluray
 )
 
 export DAV1D_MESON_ARGS=(
@@ -45,4 +48,17 @@ export DAV1D_MESON_ARGS=(
   -Denable_tests=false
   -Denable_docs=false
   -Dxxhash_muxer=disabled
+)
+
+export LIBBLURAY_MESON_ARGS=(
+  --buildtype release
+  --default-library=static
+  -Db_lto=true
+  -Denable_tools=false
+  -Dbdj_jar=disabled
+  -Djava9=false
+  -Dembed_udfread=false
+  -Dfontconfig=disabled
+  -Dfreetype=disabled
+  -Dlibxml2=disabled
 )
