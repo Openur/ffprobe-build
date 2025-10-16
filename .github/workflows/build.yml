@@ -1,0 +1,239 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_freebsd:
+        description: Build FreeBSD
+        type: boolean
+        default: false
+        required: true
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build.yml
+      - platforms/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build.yml
+      - platforms/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true
+
+env:
+  FFMPEG_VERSION: "8.0"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build_linux:
+    runs-on: ${{ startsWith(matrix.architecture, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - arm
+          - arm64
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        uses: docker://ghcr.io/openur/ffmpeg-builder:linux
+        with:
+          args: "platforms/linux/build.sh ${{ matrix.architecture }}"
+
+      - name: Display build information
+        run: |
+          platforms/linux/build/opt/ffmpeg/bin/ffprobe -hide_banner -version
+          platforms/linux/build/opt/ffmpeg/bin/ffprobe -hide_banner -buildconf
+          platforms/linux/build/opt/ffmpeg/bin/ffprobe -hide_banner -bsfs
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin
+
+      - name: Rename binary
+        run: mkdir build && cp platforms/linux/build/opt/ffmpeg/bin/ffprobe build/ffprobe-linux-${{ matrix.architecture }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-linux-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  build_windows:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - x64
+          - x86
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        uses: docker://ghcr.io/openur/ffmpeg-builder:windows
+        with:
+          args: "platforms/windows/build.sh ${{ matrix.architecture }}"
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin
+
+      - name: Rename binary
+        run: mkdir build && cp platforms/windows/build/opt/ffmpeg/bin/ffprobe.exe build/ffprobe-windows-${{ matrix.architecture }}.exe
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-windows-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  build_freebsd:
+    if: ${{ inputs.build_freebsd }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          #- arm64
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        uses: vmactions/freebsd-vm@487ce35b96fae3e60d45b521735f5aa436ecfade # v1.2.4
+        with:
+          release: 14.3
+          usesh: true
+          arch: ${{ matrix.architecture == 'arm64' && 'aarch64' || 'x86_64' }}
+          prepare: |
+            pkg install -y bash gmake pkgconf nasm meson
+          run: |
+            ./platforms/freebsd/build.sh ${{ matrix.architecture }}
+
+            ./platforms/freebsd/build/opt/ffmpeg/bin/ffprobe -hide_banner -version
+            ./platforms/freebsd/build/opt/ffmpeg/bin/ffprobe -hide_banner -buildconf
+            ./platforms/freebsd/build/opt/ffmpeg/bin/ffprobe -hide_banner -bsfs
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin
+
+      - name: Rename binary
+        run: mkdir build && cp platforms/freebsd/build/opt/ffmpeg/bin/ffprobe build/ffprobe-freebsd-${{ matrix.architecture }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-freebsd-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  build_osx:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture:
+          - arm64
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Checkout FFmpeg
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ffmpeg/ffmpeg
+          ref: n${{ env.FFMPEG_VERSION }}
+          path: ffmpeg-src
+
+      - name: Build
+        shell: bash
+        run: ./platforms/osx/build.sh ${{ matrix.architecture }}
+
+      - name: Display build information
+        run: |
+          otool -l platforms/osx/build/opt/ffmpeg/bin/ffprobe
+          platforms/osx/build/opt/ffmpeg/bin/ffprobe -hide_banner -version
+          platforms/osx/build/opt/ffmpeg/bin/ffprobe -hide_banner -buildconf
+          platforms/osx/build/opt/ffmpeg/bin/ffprobe -hide_banner -bsfs
+
+      - name: List artifacts
+        run: file platforms/*/build/opt/ffmpeg/bin
+
+      - name: Rename binary
+        run: mkdir build && cp platforms/osx/build/opt/ffmpeg/bin/ffprobe build/ffprobe-osx-${{ matrix.architecture }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-osx-${{ matrix.architecture }}
+          path: build
+          if-no-files-found: error
+
+  release:
+    needs:
+      - build_freebsd
+      - build_linux
+      - build_osx
+      - build_windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'main'
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          pattern: build-*
+          path: build
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lR build
+
+      - name: Create release
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
+        with:
+          artifacts: build/ffprobe*
+          artifactErrorsFailBuild: true
+          draft: false
+          generateReleaseNotes: false
+          skipIfReleaseExists: true
+          immutableCreate: true
+          name: ${{ env.FFMPEG_VERSION }} (build ${{ github.run_number }})
+          tag: v${{ env.FFMPEG_VERSION }}.${{ github.run_number }}
