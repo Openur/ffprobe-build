@@ -1,0 +1,86 @@
+name: Builder Images
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 1 * *'
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/builder-images.yml
+      - .docker/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/builder-images.yml
+      - .docker/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux
+          - windows
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/ffmpeg-builder
+          annotations: |
+            org.opencontainers.image.title="ffmpeg-builder"
+            org.opencontainers.image.description="Builder images intended for internal usage."
+          labels: |
+            org.opencontainers.image.title="ffmpeg-builder"
+            org.opencontainers.image.description="Builder images intended for internal usage."
+          tags: |
+            type=raw,enable=true,value=${{ matrix.platform }}
+          flavor:
+            latest=false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        with:
+          platforms: |
+            linux/arm64
+            linux/amd64
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .docker/${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          annotations: ${{ steps.docker_meta.outputs.annotations }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          platforms: |
+            linux/arm64
+            linux/amd64
+          provenance: false
