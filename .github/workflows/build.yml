@@ -26,7 +26,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FFMPEG_VERSION: "8.0"
+  # renovate: datasource=github-tags depName=ffmpeg/ffmpeg
+  FFMPEG_VERSION: n8.0
 
 permissions:
   contents: read
@@ -42,7 +43,7 @@ jobs:
         id: variables
         shell: bash
         run: |
-          version="$FFMPEG_VERSION"
+          version="${FFMPEG_VERSION#n}"
 
           if [[ $version =~ ^[0-9]+\.[0-9]+$ ]]; then
             version="${version}.0"
@@ -67,7 +68,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: ffmpeg/ffmpeg
-          ref: n${{ env.FFMPEG_VERSION }}
+          ref: ${{ env.FFMPEG_VERSION }}
           path: ffmpeg-src
 
       - name: Build
@@ -110,7 +111,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: ffmpeg/ffmpeg
-          ref: n${{ env.FFMPEG_VERSION }}
+          ref: ${{ env.FFMPEG_VERSION }}
           path: ffmpeg-src
 
       - name: Build
@@ -149,7 +150,7 @@ jobs:
         if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
         with:
           repository: ffmpeg/ffmpeg
-          ref: n${{ env.FFMPEG_VERSION }}
+          ref: ${{ env.FFMPEG_VERSION }}
           path: ffmpeg-src
 
       - name: Build
@@ -200,7 +201,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           repository: ffmpeg/ffmpeg
-          ref: n${{ env.FFMPEG_VERSION }}
+          ref: ${{ env.FFMPEG_VERSION }}
           path: ffmpeg-src
 
       - name: Build
@@ -313,7 +314,7 @@ jobs:
           generateReleaseNotes: false
           skipIfReleaseExists: true
           immutableCreate: true
-          name: ${{ env.FFMPEG_VERSION }} (build ${{ github.run_number }})
+          name: v${{ needs.prepare.outputs.semver }} (build ${{ github.run_number }})
           tag: v${{ needs.prepare.outputs.semver }}.${{ github.run_number }}
 
   publish:
