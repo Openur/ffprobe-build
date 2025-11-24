@@ -26,6 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # renovate: datasource=github-tags packageName=ffmpeg/ffmpeg
   FFMPEG_VERSION: "8.0"
 
 permissions:
