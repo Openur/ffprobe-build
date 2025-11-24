@@ -62,10 +62,10 @@ jobs:
           - x64
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Checkout FFmpeg
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: ffmpeg/ffmpeg
           ref: ${{ env.FFMPEG_VERSION }}
@@ -89,7 +89,7 @@ jobs:
         run: mkdir -p build/linux-${{ matrix.architecture }} && cp platforms/linux/build/opt/ffmpeg/bin/ffprobe build/linux-${{ matrix.architecture }}/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: build-linux-${{ matrix.architecture }}
           path: build
@@ -105,10 +105,10 @@ jobs:
           - x86
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Checkout FFmpeg
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: ffmpeg/ffmpeg
           ref: ${{ env.FFMPEG_VERSION }}
@@ -126,7 +126,7 @@ jobs:
         run: mkdir -p build/win-${{ matrix.architecture }} && cp platforms/windows/build/opt/ffmpeg/bin/ffprobe.exe build/win-${{ matrix.architecture }}/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: build-win-${{ matrix.architecture }}
           path: build
@@ -142,11 +142,11 @@ jobs:
           - x64
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
 
       - name: Checkout FFmpeg
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
         with:
           repository: ffmpeg/ffmpeg
@@ -178,7 +178,7 @@ jobs:
         if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         if: ${{ !startsWith(matrix.architecture, 'arm') || inputs.build_freebsd_arm }}
         with:
           name: build-freebsd-${{ matrix.architecture }}
@@ -195,10 +195,10 @@ jobs:
           - x64
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Checkout FFmpeg
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           repository: ffmpeg/ffmpeg
           ref: ${{ env.FFMPEG_VERSION }}
@@ -222,7 +222,7 @@ jobs:
         run: mkdir -p build/osx-${{ matrix.architecture }} && cp platforms/osx/build/opt/ffmpeg/bin/ffprobe build/osx-${{ matrix.architecture }}/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: build-osx-${{ matrix.architecture }}
           path: build
@@ -238,7 +238,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
@@ -250,7 +250,7 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Download artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           pattern: build-*
           path: build
@@ -264,7 +264,7 @@ jobs:
         run: dotnet pack -c Release -v detailed -p:Version=${{ needs.prepare.outputs.semver }}.${{ github.run_number }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: packages
           path: artifacts/package/release/Openur.FFprobe.*.nupkg
@@ -280,13 +280,13 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref_name == 'main' && inputs.build_freebsd_arm
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: packages
           path: packages
 
       - name: Download artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           pattern: build-*
           path: build
@@ -324,7 +324,7 @@ jobs:
       packages: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: packages
           path: packages
