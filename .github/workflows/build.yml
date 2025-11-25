@@ -27,7 +27,7 @@ concurrency:
 
 env:
   # renovate: datasource=github-tags depName=ffmpeg/ffmpeg
-  FFMPEG_VERSION: n8.0
+  FFMPEG_VERSION: n8.0.1
 
 permissions:
   contents: read
