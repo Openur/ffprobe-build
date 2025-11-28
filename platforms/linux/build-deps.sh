@@ -27,7 +27,7 @@ build_dav1d() {
 
   rm -rf "${BUILD_DIRECTORY}"/dav1d
   mkdir -p "${BUILD_DIRECTORY}"/dav1d
-  wget -qO- https://download.videolan.org/videolan/dav1d/1.5.2/dav1d-1.5.2.tar.xz | tar xJ -C "${BUILD_DIRECTORY}/dav1d" --strip-components=1
+  wget -qO- https://download.videolan.org/videolan/dav1d/${DAV1D_VERSION}/dav1d-${DAV1D_VERSION}.tar.xz | tar xJ -C "${BUILD_DIRECTORY}/dav1d" --strip-components=1
   pushd "${BUILD_DIRECTORY}"/dav1d
   meson setup build . "${DAV1D_MESON_ARGS[@]}"
   meson compile -C build --verbose
