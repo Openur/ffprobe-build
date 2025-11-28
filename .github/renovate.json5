@@ -22,13 +22,25 @@
     {
       customType: "regex",
       description: "Process annotated dependencies",
-      managerFilePatterns: ["/\\.ya?ml$/"],
+      managerFilePatterns: [
+        "/\\.ya?ml$/",
+      ],
       matchStrings: [
-        "datasource=(?<datasource>\\S+)(?: packageName=(?<packageName>\\S+))? depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?\\n.+(:\\s|=)(&\\S+\\s)?(?<currentValue>\\S+)"
+        "datasource=(?<datasource>\\S+)(?: packageName=(?<packageName>\\S+))? depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?\\n.+(:\\s|=)(&\\S+\\s)?(?<currentValue>\\S+)",
       ],
       datasourceTemplate: "{{#if datasource}}{{{datasource}}}{{else}}github-releases{{/if}}",
-      versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
-    }
+      versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}",
+    },
+    {
+      customType: "regex",
+      managerFilePatterns: [
+        "/\\.sh$/",
+      ],
+      matchStrings: [
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?( registryUrl=(?<registryUrl>.*?))?\\s.*?_VERSION=(?<currentValue>\\S+)",
+      ],
+      versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}",
+    },
   ],
   packageRules: [
     {
