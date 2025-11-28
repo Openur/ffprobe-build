@@ -267,7 +267,7 @@ jobs:
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: packages
-          path: artifacts/package/release/Openur.FFprobe.*.nupkg
+          path: artifacts/package/release/Openur.FFprobeStatic.*.nupkg
           if-no-files-found: error
 
   release:
@@ -308,7 +308,9 @@ jobs:
       - name: Create release
         uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
-          artifacts: packages/Openur.FFprobe.*.nupkg,artifacts/ffprobe.*
+          artifacts: |
+            packages/Openur.FFprobeStatic.*.nupkg
+            artifacts/ffprobe.*
           artifactErrorsFailBuild: true
           draft: false
           generateReleaseNotes: false
@@ -333,7 +335,7 @@ jobs:
         shell: bash
         run: >-
           dotnet nuget push
-          packages/Openur.FFprobe.*.nupkg
+          packages/Openur.FFprobeStatic.*.nupkg
           --no-symbols
           --skip-duplicate
           --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json

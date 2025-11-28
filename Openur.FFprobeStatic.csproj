@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageId>Openur.FFprobe</PackageId>
-    <Title>Openur.FFprobe</Title>
+    <PackageId>Openur.FFprobeStatic</PackageId>
+    <Title>Openur.FFprobeStatic</Title>
     <Version>1.0.0</Version>
     <Authors>Openur Team</Authors>
     <Description>This package contains builds of the native FFprobe code for various platforms.</Description>
