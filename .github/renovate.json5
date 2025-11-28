@@ -14,10 +14,6 @@
     "prEditedNotification",
     "prIgnoreNotification"
   ],
-  enabledManagers: [
-    "github-actions",
-    "custom.regex",
-  ],
   customManagers: [
     {
       customType: "regex",
@@ -119,6 +115,11 @@
       matchDatasources: ["github-tags"],
       matchPackageNames: ["/ffmpeg\/ffmpeg/"],
       versioning: "regex:^n(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?$"
+    },
+    {
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/debian/"],
+      allowedVersions: "/11/",
     },
   ]
 }
