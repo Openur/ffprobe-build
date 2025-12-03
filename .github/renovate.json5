@@ -113,13 +113,13 @@
     {
       description: "Custom versioning for FFmpeg/FFmpeg",
       matchDatasources: ["github-tags"],
-      matchPackageNames: ["/ffmpeg\/ffmpeg/"],
+      matchPackageNames: ["ffmpeg/ffmpeg"],
       versioning: "regex:^n(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?$"
     },
     {
       matchDatasources: ["docker"],
       matchPackageNames: ["/debian/"],
-      allowedVersions: "/11/",
+      allowedVersions: "==11",
     },
   ]
 }
