@@ -340,3 +340,13 @@ jobs:
           --skip-duplicate
           --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
           --api-key ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to NuGet
+        shell: bash
+        run: >-
+          dotnet nuget push
+          packages/Openur.FFprobeStatic.*.nupkg
+          --no-symbols
+          --skip-duplicate
+          --source https://api.nuget.org/v3/index.json
+          --api-key ${{ secrets.NUGET_API_KEY }}
